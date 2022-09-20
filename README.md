@@ -5,6 +5,8 @@ With Omniverse, everyone involved in the lifecycle of 3D data has access to high
 
 To support distributed Omniverse users, Nucleus should be deployed in a secure environment. With on-demand compute, storage, and networking resources, AWS infrastructure is well suited to all spatial computing workloads, including Omniverse Nucleus. This repository provides the steps and infrastructure for an Omniverse Enterprise Nucleus Server deployment on Amazon EC2.
 
+
+
 ## Contents
 * [Prerequisites](#prerequisites)
 * [Deployment](#deployment)
@@ -24,6 +26,8 @@ To support distributed Omniverse users, Nucleus should be deployed in a secure e
 - Access to NVIDIA Enterprise Omniverse Nucleus packages - https://docs.omniverse.nvidia.com/prod_nucleus/prod_nucleus/enterprise/installation/quick_start_tips.html
 - Nitro Enclaves Marketplace Subscription - https://aws.amazon.com/marketplace/pp/prodview-f4gcl7narsmle
 - A Route53 Public Hosted Zone - https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingHostedZone.html
+
+**To learn more, reference the official documentation from NVIDIA:** https://docs.omniverse.nvidia.com/prod_nucleus/prod_nucleus/enterprise/cloud_aws_ec2.html
 
 ## Architecture
 ![architecture](/diagrams/architecture.png)
