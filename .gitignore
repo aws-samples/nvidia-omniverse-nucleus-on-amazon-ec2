@@ -1,0 +1,31 @@
+# nucleus - developers must download nvidia stack artifiacts
+/src/tools/nucleusServer/stack/*tar.gz
+
+# node
+*.js
+!jest.config.js
+*.d.ts
+node_modules
+
+# cdk
+.cdk.staging
+cdk.out
+cdk.context.json
+
+# python
+**/__pycache__
+**.egg-info
+**.egg
+
+output_configs
+tools/config.ini
+**/venv/
+**/.venv/
+**/env/
+
+**/tests/.env
+.env
+
+.DS_STORE
+.vscode
+
