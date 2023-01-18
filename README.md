@@ -102,6 +102,8 @@ Test a connection to `<NUCLUES_SERVER_PREFIX>.<ROOT_DOMAIN>` from within the ALL
 
 The default admin username for the Nucleus server is 'omniverse'. You can find the password in a Secrets Manager resource via the AWS Secrets Manager Console. Alternatively, from the Omniverse WebUI, you can create a new username and password.
 
+> NOTE: There is a known issue with this release that causes the Nginx configuration to fail on initial deployment. After Step 6, if connection to Nucleus fails, terminate the reverse proxy instance and allow the Auto Scaling group to launch a new instance. If connection fails after this step, please see the below notes under the section, ["Unable to connect to the Nucleus Server"](#unable-to-connect-to-the-nucleus-server).
+
 ## Troubleshooting
 ### Deployment fails
     CREATE_FAILED | AWS::AutoScaling::AutoScalingGroup | RevProxyResources/autoScalingGroup
