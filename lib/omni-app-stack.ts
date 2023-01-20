@@ -9,11 +9,14 @@ import { cleanEnv, str, bool } from 'envalid';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as pyLambda from '@aws-cdk/aws-lambda-python-alpha';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const env = cleanEnv(process.env, {
 	DEV_MODE: bool({ default: false }),
 	OMNIVERSE_ARTIFACTS_BUCKETNAME: str({ default: '' }),
 });
+
 export class AppStack extends Stack {
 	constructor(scope: Construct, id: string, props?: StackProps) {
 		super(scope, id, props);
