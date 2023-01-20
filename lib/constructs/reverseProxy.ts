@@ -77,13 +77,37 @@ export class RevProxyResources extends Construct {
 		);
 
 		// AWS Certificate Manager for Nitro Enclaves AMI
+		// TODO: find a better way to do this. ami ids periodically change.
 		const al2ServerAMI = new ec2.GenericLinuxImage({
-			'us-west-2': 'ami-01c4415fd6c2f0927',
-			'us-east-1': 'ami-00d96e5ee00daa484',
+			'us-east-1': 'ami-067e01f98d605d838',
+			'us-east-2': 'ami-0745bb391a19183f7',
+			'us-west-1': 'ami-0f68ce5c374ca882e',
+			'us-west-2': 'ami-05421ae6be0ecba36',
+			'af-south-1': 'ami-0a1f08717162013ff',
+			'ap-east-1': 'ami-026506b0d1592171c',
+			'ap-south-2': 'ami-05163545faabbc2ab',
+			'ap-southeast-3': 'ami-0200d4a95da941b9c',
+			'ap-south-1': 'ami-02c1f1cb67c58f145',
+			'ap-northeast-3': 'ami-01038c691d205282e',
+			'ap-northeast-2': 'ami-0eccbf0b6663c7243',
+			'ap-southeast-1': 'ami-0f5a7e00747a2921b',
+			'ap-southeast-2': 'ami-087e3817e8226c23c',
+			'ap-northeast-1': 'ami-0200d4a95da941b9c',
+			'ca-central-1': 'ami-0540e26062e4c7ca0',
+			'eu-central-1': 'ami-037911634dcf6c6a0',
+			'eu-west-1': 'ami-02f395a0fa56c9693',
+			'eu-west-2': 'ami-0c118067ab2203d35',
+			'eu-south-1': 'ami-07f57e4b7531041ad',
+			'eu-west-3': 'ami-0cb7b97dfaab4887c',
+			'eu-south-2': 'ami-0544f0ee7f15af185',
+			'eu-north-1': 'ami-0b3150f7694a6d959',
+			'eu-central-2': 'ami-04b106e1d3dbaff6f',
+			'me-south-1': 'ami-0d751082219d22f86',
+			'me-central-1': 'ami-0258c6ac275f1e650',
+			'sa-east-1': 'ami-01cf8c891c1eb671a',
 		});
 
 		const user_data = `#!/bin/bash`;
-
 		const ebs_volume: ec2.BlockDevice = {
 			deviceName: '/dev/xvda',
 			volume: ec2.BlockDeviceVolume.ebs(512, { encrypted: true }),
