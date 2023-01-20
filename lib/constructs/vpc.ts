@@ -5,7 +5,9 @@ import { cleanEnv, str, bool } from 'envalid';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const env = cleanEnv(process.env, {
 	ALLOWED_CIDR_RANGE_01: str({ default: '' }),
 	ALLOWED_CIDR_RANGE_02: str({ default: '' }),
