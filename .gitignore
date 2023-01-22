@@ -1,5 +1,6 @@
 # nucleus - developers must download nvidia stack artifiacts
 /src/tools/nucleusServer/stack/*tar.gz
+/src/tools/nucleusServer/stack/*
 
 # node
 *.js

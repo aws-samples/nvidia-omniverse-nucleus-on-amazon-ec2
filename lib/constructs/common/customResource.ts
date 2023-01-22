@@ -15,10 +15,6 @@ interface LooseTypeObject {
 	[key: string]: any;
 }
 
-const env = cleanEnv(process.env, {
-	DEV_MODE: bool({ default: false }),
-});
-
 export type ConstructProps = {
 	lambdaCodePath: string;
 	lambdaPolicyDocument: iam.PolicyDocument;
@@ -34,11 +30,6 @@ export class CustomResource extends Construct {
 
 		const region: string = Stack.of(this).region;
 		const account: string = Stack.of(this).account;
-
-		var removalPolicy = RemovalPolicy.RETAIN;
-		if (env.DEV_MODE) {
-			removalPolicy = RemovalPolicy.DESTROY;
-		}
 
 		const lambdaRole = new iam.Role(this, 'lambdaRole', {
 			assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -58,7 +49,7 @@ export class CustomResource extends Construct {
 		const logGroup = new logs.LogGroup(this, 'lambdaFnLogGroup', {
 			logGroupName: lambdaLogGroup,
 			retention: logs.RetentionDays.ONE_WEEK,
-			removalPolicy: removalPolicy,
+			removalPolicy: RemovalPolicy.DESTROY,
 		});
 
 		const lambdaFn = new pyLambda.PythonFunction(this, 'lambdaFn', {

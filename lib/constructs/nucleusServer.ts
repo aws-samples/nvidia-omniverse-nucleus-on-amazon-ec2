@@ -8,14 +8,15 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as pyLambda from '@aws-cdk/aws-lambda-python-alpha';
-import fs = require('fs');
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const env = cleanEnv(process.env, {
 	ALLOWED_CIDR_RANGE_01: str({ default: '' }),
 	ALLOWED_CIDR_RANGE_02: str({ default: '' }),
 	DEV_MODE: bool({ default: false }),
 	ROOT_DOMAIN: str({ default: '' }),
-	nucleusServerPrefix: str({ default: 'nucleus' }),
+	NUCLEUS_SERVER_PREFIX: str({ default: 'nucleus' }),
 	NUCLEUS_BUILD: str({ default: '' }),
 });
 
@@ -36,15 +37,10 @@ export class NucluesServerResources extends Construct {
 		const account: string = Stack.of(this).account;
 		const stackName: string = Stack.of(this).stackName;
 
-		var removalPolicy = RemovalPolicy.RETAIN;
-		var nucleusServerPrefix = env.nucleusServerPrefix;
-		if (env.DEV_MODE) {
-			removalPolicy = RemovalPolicy.DESTROY;
-			nucleusServerPrefix = `${nucleusServerPrefix}-dev`;
-		}
+		var removalPolicy = RemovalPolicy.DESTROY;
 
 		const root_domain = `${env.ROOT_DOMAIN}`;
-		const fullDomainName = `${nucleusServerPrefix}.${env.ROOT_DOMAIN}`;
+		const fullDomainName = `${env.NUCLEUS_SERVER_PREFIX}.${env.ROOT_DOMAIN}`;
 
 		// Templated secret
 		const ovMainLogin = new secretsmanager.Secret(this, 'ovMainLogin', {
@@ -77,40 +73,44 @@ export class NucluesServerResources extends Construct {
 		};
 
 		// Canonical, Ubuntu, 20.04 LTS, amd64
-		const nucleusServerAMI = new ec2.GenericLinuxImage({
-			'us-west-2': 'ami-0892d3c7ee96c0bf7',
-			'us-east-1': 'ami-04505e74c0741db8d',
-		});
+		const nucleusServerAMI = ec2.MachineImage.fromSsmParameter(
+			'/aws/service/canonical/ubuntu/server/focal/stable/current/amd64/hvm/ebs-gp2/ami-id',
+			{
+				os: ec2.OperatingSystemType.LINUX,
+			}
+		);
 
 		const user_data = `#!/bin/bash
-		sudo apt-get update
+			echo ------------------------ NUCLEUS SERVER CONFIG ------------------------
+			echo UPDATING AND INSTALLING DEPS ----------------------------------
+			sudo apt-get update -y -q
+			sudo apt-get install dialog apt-utils -y
 
-		sudo apt-get -y install python3.9
-		sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-		sudo python3.9 get-pip.py
+			echo INSTALLING AWS CLI ----------------------------------
+			sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+			sudo apt-get install unzip
+			sudo unzip awscliv2.zip
+			sudo ./aws/install
+			sudo rm awscliv2.zip
+			sudo rm -fr ./aws/install
 
-		# docker
-		sudo apt-get -y install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-		sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-		sudo apt-get -y update
-		sudo apt-get -y install docker-ce docker-ce-cli containerd.io
+			echo INSTALLING PYTHON ----------------------------------
+			sudo apt-get -y install python3.9
+			sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+			sudo python3.9 get-pip.py
 
-		# aws cli
-		sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-		sudo apt-get install unzip
-		sudo unzip awscliv2.zip
-		sudo ./aws/install
-		sudo rm awscliv2.zip
-		sudo rm -fr ./aws/install
+			echo INSTALLING DOCKER ----------------------------------
+			sudo apt-get remove docker docker-engine docker.io containerd runc
+			sudo apt-get -y install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+			curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+			sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+			sudo apt-get -y update
+			sudo apt-get -y install docker-ce docker-ce-cli containerd.io
+			sudo systemctl enable --now docker
 
-		sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-		sudo chmod +x /usr/local/bin/docker-compose
-
-		#aws s3 sync s3://installers-8s7d/nucleus ./nucleus
-		#apt-get install xz-utils
-		#cd nucleus
-		#sudo tar xf nucleus-stack-2022.1.0+tag-2022.1.0.gitlab.3983146.613004ac.tar.gz
+			echo INSTALLING DOCKER COMPOSE ----------------------------------
+			sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+			sudo chmod +x /usr/local/bin/docker-compose
 		`;
 
 		this.nucleusServerInstance = new ec2.Instance(this, 'NucleusServer', {

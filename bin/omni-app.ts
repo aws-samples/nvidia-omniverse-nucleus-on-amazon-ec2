@@ -52,7 +52,10 @@ const env = cleanEnv(process.env, {
 
 // console.log(env);
 
-const stackName = (env.DEV_MODE) ? env.APP_STACK_NAME : `${env.APP_STACK_NAME}-dev`;
+let stackName = env.APP_STACK_NAME;
+if (env.DEV_MODE) {
+	stackName += "-dev";
+}
 
 const app = new cdk.App();
 const stack = new AppStack(app, stackName, {

@@ -51,28 +51,34 @@ def update_nginix_config(
 ):
 
     commands = [
-        # install python3.9
-        # this should be baked into the AMI to avoid installing every time
-        # set here to avoid managing additional AMI artifact during prototype engagement
-        "yum -y update",
-        "yum install gcc openssl-devel bzip2-devel libffi-devel zlib-devel -y",
-        "wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz",
-        "tar xzf Python-3.9.6.tgz",
-        "cd Python-3.9.6",
-        "./configure --prefix=/usr  --enable-optimizations",
-        "make install",
-        # install custom reverse proxy tools - see ./src/tools/reverseProxy
-        f"aws s3 cp s3://{artifactsBucket}/tools/tools.zip ./tools.zip",
-        "unzip -o tools.zip",
+        "echo ------------------------ REVERSE PROXY CONFIG ------------------------",
+        "echo UPDATING PACKAGES ----------------------------------",
+        "sudo yum update -y",
+
+        "echo INSTALLING DEPENDENCIES ----------------------------------",
+        "sudo yum install -y aws-cfn-bootstrap gcc openssl-devel bzip2-devel libffi-devel zlib-devel",
+
+        "echo INSTALLING PYTHON ----------------------------------",
+        "sudo wget https://www.python.org/ftp/python/3.9.9/Python-3.9.9.tgz -P /opt/python3.9",
+        "cd /opt/python3.9",
+        "sudo tar xzf Python-3.9.9.tgz",
+        "cd Python-3.9.9",
+        "sudo ./configure --prefix=/usr --enable-optimizations",
+        "sudo make install",
+
+        "echo INSTALLING REVERSE PROXY TOOLS ----------------------------------",
+        "cd /opt",
+        f"sudo aws s3 cp s3://{artifactsBucket}/tools/tools.zip ./tools.zip",
+        "sudo unzip -o tools.zip",
         "cd reverseProxy",
         "pip3 --version",
-        "pip3 install -r requirements.txt",
-        # configure server
+        "sudo pip3 install -r requirements.txt",
         f"rpt generate-acm-yaml --cert-arn {certArn}",
-        f"rpt generate-nginx-config --domain {domain} --server-address {nucleusServerAddress}",
-        "mv acm.yaml /etc/nitro_enclaves/acm.yaml",
-        "mv nginx.conf /etc/nginx/nginx.conf",
-        # start server
+        f"sudo rpt generate-nginx-config --domain {domain} --server-address {nucleusServerAddress}",
+        "sudo mv acm.yaml /etc/nitro_enclaves/acm.yaml",
+        "sudo mv -f nginx.conf /etc/nginx/nginx.conf",
+
+        "echo STARTING NGINX ----------------------------------",
         "systemctl start nitro-enclaves-acm.service",
         "systemctl enable nitro-enclaves-acm",
     ]
@@ -93,11 +99,11 @@ def handler(event, context):
     if transition == "autoscaling:EC2_INSTANCE_LAUNCHING":
         try:
 
-            revProxyServerAddress = ec2.get_instance_public_dns_name(instanceId)
+            revProxyServerAddress = ec2.get_instance_public_dns_name(
+                instanceId)
 
             # TODO: get instance status via ec2 describe-instance-status,
             # loop with falloff until InstanceStatus['Status'] == 'ok' and SystemStatus['Status'] == 'ok'
-
             r53.update_hosted_zone_cname_record(
                 R53_HOSTED_ZONE_ID,
                 NUCLEUS_ROOT_DOMAIN,
