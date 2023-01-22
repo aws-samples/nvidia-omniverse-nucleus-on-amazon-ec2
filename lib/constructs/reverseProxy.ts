@@ -14,7 +14,9 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as autoscaling from 'aws-cdk-lib/aws-autoscaling';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const env = cleanEnv(process.env, {
 	ALLOWED_CIDR_RANGE_01: str({ default: '' }),
 	ALLOWED_CIDR_RANGE_02: str({ default: '' }),
@@ -40,16 +42,8 @@ export class RevProxyResources extends Construct {
 		const region: string = Stack.of(this).region;
 		const account: string = Stack.of(this).account;
 
-		var removalPolicy = RemovalPolicy.RETAIN;
-
-		var nucleus_server_prefix = env.NUCLEUS_SERVER_PREFIX;
-		if (env.DEV_MODE) {
-			nucleus_server_prefix = `${nucleus_server_prefix}-dev`;
-			removalPolicy = RemovalPolicy.DESTROY;
-		}
-
 		const root_domain = `${env.ROOT_DOMAIN}`;
-		const fqdn = `${nucleus_server_prefix}.${env.ROOT_DOMAIN}`;
+		const fqdn = `${env.NUCLEUS_SERVER_PREFIX}.${env.ROOT_DOMAIN}`;
 
 		const instance_role = new iam.Role(this, 'InstanceRole', {
 			assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -77,37 +71,12 @@ export class RevProxyResources extends Construct {
 		);
 
 		// AWS Certificate Manager for Nitro Enclaves AMI
-		// TODO: find a better way to do this. ami ids periodically change.
-		const al2ServerAMI = new ec2.GenericLinuxImage({
-			'us-east-1': 'ami-067e01f98d605d838',
-			'us-east-2': 'ami-0745bb391a19183f7',
-			'us-west-1': 'ami-0f68ce5c374ca882e',
-			'us-west-2': 'ami-05421ae6be0ecba36',
-			'af-south-1': 'ami-0a1f08717162013ff',
-			'ap-east-1': 'ami-026506b0d1592171c',
-			'ap-south-2': 'ami-05163545faabbc2ab',
-			'ap-southeast-3': 'ami-0200d4a95da941b9c',
-			'ap-south-1': 'ami-02c1f1cb67c58f145',
-			'ap-northeast-3': 'ami-01038c691d205282e',
-			'ap-northeast-2': 'ami-0eccbf0b6663c7243',
-			'ap-southeast-1': 'ami-0f5a7e00747a2921b',
-			'ap-southeast-2': 'ami-087e3817e8226c23c',
-			'ap-northeast-1': 'ami-0200d4a95da941b9c',
-			'ca-central-1': 'ami-0540e26062e4c7ca0',
-			'eu-central-1': 'ami-037911634dcf6c6a0',
-			'eu-west-1': 'ami-02f395a0fa56c9693',
-			'eu-west-2': 'ami-0c118067ab2203d35',
-			'eu-south-1': 'ami-07f57e4b7531041ad',
-			'eu-west-3': 'ami-0cb7b97dfaab4887c',
-			'eu-south-2': 'ami-0544f0ee7f15af185',
-			'eu-north-1': 'ami-0b3150f7694a6d959',
-			'eu-central-2': 'ami-04b106e1d3dbaff6f',
-			'me-south-1': 'ami-0d751082219d22f86',
-			'me-central-1': 'ami-0258c6ac275f1e650',
-			'sa-east-1': 'ami-01cf8c891c1eb671a',
+		// ami id numbers periodically change, so we look up the ami by name prefix and owner
+		const nitroImage = new ec2.LookupMachineImage({
+			name: "ACM-For-Nitro-Enclaves-*",
+			owners: ['aws-marketplace']
 		});
 
-		const user_data = `#!/bin/bash`;
 		const ebs_volume: ec2.BlockDevice = {
 			deviceName: '/dev/xvda',
 			volume: ec2.BlockDeviceVolume.ebs(512, { encrypted: true }),
@@ -115,12 +84,12 @@ export class RevProxyResources extends Construct {
 
 		const launchTemplate = new ec2.LaunchTemplate(this, 'launchTemplate', {
 			instanceType: new ec2.InstanceType('c5.xlarge'),
-			machineImage: al2ServerAMI,
+			machineImage: nitroImage,
 			blockDevices: [ebs_volume],
 			role: instance_role,
 			securityGroup: props.reverseProxySG,
 			nitroEnclaveEnabled: true,
-			userData: ec2.UserData.custom(user_data),
+			userData: ec2.UserData.forLinux(),
 			detailedMonitoring: true,
 		});
 
@@ -161,6 +130,7 @@ export class RevProxyResources extends Construct {
 				new iam.PolicyStatement({
 					resources: [
 						`arn:aws:autoscaling:${region}:${account}:autoScalingGroup:*:autoScalingGroupName/${autoScalingGroup.ref}`,
+						// `arn:aws:autoscaling:*:${account}:autoScalingGroup:*:autoScalingGroupName/${autoScalingGroup.ref}`,
 					],
 					actions: ['autoscaling:CompleteLifecycleAction'],
 				}),
@@ -168,6 +138,8 @@ export class RevProxyResources extends Construct {
 					resources: [
 						`arn:aws:ssm:${region}::document/AWS-RunPowerShellScript`,
 						`arn:aws:ssm:${region}::document/AWS-RunShellScript`,
+						// `arn:aws:ssm:*::document/AWS-RunPowerShellScript`,
+						// `arn:aws:ssm:*::document/AWS-RunShellScript`,
 					],
 					actions: ['ssm:SendCommand'],
 				}),
@@ -201,6 +173,7 @@ export class RevProxyResources extends Construct {
 				new iam.PolicyStatement({
 					actions: ['ssm:SendCommand'],
 					resources: [`arn:aws:ec2:${region}:${account}:instance/*`],
+					// resources: [`arn:aws:ec2:*:${account}:instance/*`],
 				}),
 				new iam.PolicyStatement({
 					actions: ['ec2:DescribeInstances', 'ec2:DescribeInstanceStatus'],
@@ -212,6 +185,7 @@ export class RevProxyResources extends Construct {
 				}),
 				new iam.PolicyStatement({
 					actions: ['ssm:GetCommandInvocation'],
+					// resources: [`arn:aws:ssm:*:${account}:*`],
 					resources: [`arn:aws:ssm:${region}:${account}:*`],
 				}),
 			],
@@ -232,7 +206,7 @@ export class RevProxyResources extends Construct {
 		const logGroup = new logs.LogGroup(this, 'lifecycleLambdaFnLogGroup', {
 			logGroupName: lambdaLogGroup,
 			retention: logs.RetentionDays.ONE_WEEK,
-			removalPolicy: removalPolicy,
+			removalPolicy: RemovalPolicy.DESTROY,
 		});
 
 		const lifecycleLambdaFn = new pyLambda.PythonFunction(this, 'lifecycleLambdaFn', {
@@ -247,7 +221,7 @@ export class RevProxyResources extends Construct {
 				R53_HOSTED_ZONE_ID: props.hostedZone.hostedZoneId,
 				ARTIFACTS_BUCKET: props.artifactsBucket.bucketName,
 				NUCLEUS_ROOT_DOMAIN: root_domain,
-				NUCLEUS_DOMAIN_PREFIX: nucleus_server_prefix,
+				NUCLEUS_DOMAIN_PREFIX: env.NUCLEUS_SERVER_PREFIX,
 				NUCLEUS_SERVER_ADDRESS: props.nucleusServerInstance.instancePrivateDnsName,
 				REVERSE_PROXY_SSL_CERT_ARN: props.certificate.certificateArn,
 			},
@@ -319,6 +293,7 @@ export class RevProxyResources extends Construct {
 					],
 					resources: [
 						`arn:aws:acm:${region}:${account}:certificate/*`,
+						// `arn:aws:acm:*:${account}:certificate/*`,
 						`arn:aws:iam::${account}:role/*`,
 					],
 				}),
@@ -343,7 +318,6 @@ export class RevProxyResources extends Construct {
 					id: 'AwsSolutions-IAM5',
 					reason:
 						'Wildcard Permissions: Unable to know which objects exist ahead of time. Need to use wildcard',
-					// appliesTo: [`Resource::${props.artifactsBucket.bucketArn}/*`]
 				},
 			],
 			true
@@ -366,7 +340,7 @@ export class RevProxyResources extends Construct {
 				{
 					id: 'AwsSolutions-AS3',
 					reason:
-						'Autoscaling Event notifications: Backloged, will provide guidance in production document',
+						'Autoscaling Event notifications: Backlogged, will provide guidance in production document',
 				},
 			],
 			true
