@@ -130,7 +130,6 @@ export class RevProxyResources extends Construct {
 				new iam.PolicyStatement({
 					resources: [
 						`arn:aws:autoscaling:${region}:${account}:autoScalingGroup:*:autoScalingGroupName/${autoScalingGroup.ref}`,
-						// `arn:aws:autoscaling:*:${account}:autoScalingGroup:*:autoScalingGroupName/${autoScalingGroup.ref}`,
 					],
 					actions: ['autoscaling:CompleteLifecycleAction'],
 				}),
@@ -138,8 +137,6 @@ export class RevProxyResources extends Construct {
 					resources: [
 						`arn:aws:ssm:${region}::document/AWS-RunPowerShellScript`,
 						`arn:aws:ssm:${region}::document/AWS-RunShellScript`,
-						// `arn:aws:ssm:*::document/AWS-RunPowerShellScript`,
-						// `arn:aws:ssm:*::document/AWS-RunShellScript`,
 					],
 					actions: ['ssm:SendCommand'],
 				}),
@@ -173,7 +170,6 @@ export class RevProxyResources extends Construct {
 				new iam.PolicyStatement({
 					actions: ['ssm:SendCommand'],
 					resources: [`arn:aws:ec2:${region}:${account}:instance/*`],
-					// resources: [`arn:aws:ec2:*:${account}:instance/*`],
 				}),
 				new iam.PolicyStatement({
 					actions: ['ec2:DescribeInstances', 'ec2:DescribeInstanceStatus'],

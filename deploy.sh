@@ -6,7 +6,15 @@
 
 echo '
 ###############################
-# Building and deploying Stack
+# Installing Dependencies
+###############################
+'
+npm ci
+
+
+echo '
+###############################
+# Building & Deploying Stack
 ###############################
 '
 
