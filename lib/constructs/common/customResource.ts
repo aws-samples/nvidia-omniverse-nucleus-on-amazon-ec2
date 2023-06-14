@@ -1,7 +1,6 @@
 import { Construct } from 'constructs';
 import { Duration, Stack, RemovalPolicy } from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
-import { cleanEnv, bool } from 'envalid';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
