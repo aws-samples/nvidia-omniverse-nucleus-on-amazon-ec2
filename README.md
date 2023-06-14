@@ -38,7 +38,7 @@ To support distributed Omniverse users, Nucleus should be deployed in a secure e
 > NOTE: it is recommended that you set a python virtualenv before hand
 
 ```
-cd omni-app/tools
+cd tools
 pip install -r requirements.txt
 ```
 
@@ -50,18 +50,18 @@ aws s3 mb s3://bucket_name
 ```
 
 ### 3. Download Nucleus Deployment Artifacts from NVIDIA
-Place them in `omni-app/src/tools/nucleusServer/stack`
+Place them in `src/tools/nucleusServer/stack`
 
-For example: `omni-app/src/tools/nucleusServer/stack/nucleus-stack-2022.1.0+tag-2022.1.0.gitlab.3983146.613004ac.tar.gz`
+For example: `src/tools/nucleusServer/stack/nucleus-stack-2022.4.0+tag-2022.4.0-rc.1.gitlab.6522377.48333833.tar.gz`
 
 Consult NVIDIA documentation to find the appropriate packages.
 
-> Note This deployment has a templated copy of `nucleus-stack.env` located at `omni-app/src/tools/nucleusServer/templates/nucleus-stack.env` this may need to be updated if NVIDIA makes changes to the `nucleus-stack.env` file packaged with their archive.
+> Note This deployment has a templated copy of `nucleus-stack.env` located at `src/tools/nucleusServer/templates/nucleus-stack.env` this may need to be updated if NVIDIA makes changes to the `nucleus-stack.env` file packaged with their archive.
 >
-> The same applies to NVIDIA's reverse proxy `nginx.conf` located at `omni-app/src/tools/reverseProxy/templates/nginx.conf`
+> The same applies to NVIDIA's reverse proxy `nginx.conf` located at `src/tools/reverseProxy/templates/nginx.conf`
 
 ### 4. configure .env file
-create omni-app/.env
+create .env
 
 Set the following variables
 ```
@@ -72,7 +72,7 @@ Set the following variables
   export OMNIVERSE_ARTIFACTS_BUCKETNAME=BUCKET_NAME_FROM_STEP2
   export ROOT_DOMAIN=server.domain
   export NUCLUES_SERVER_PREFIX=nucleus
-  export NUCLEUS_BUILD=nucleus-stack-2022.1.0+tag-2022.1.0.gitlab.3983146.613004ac # from previous step
+  export NUCLEUS_BUILD=nucleus-stack-2022.4.0+tag-2022.4.0-rc.1.gitlab.6522377.48333833 # from previous step
   export ALLOWED_CIDR_RANGE_01=CIDR_RANGE_WITH_PUBLIC_ACCESS
 ```
 
