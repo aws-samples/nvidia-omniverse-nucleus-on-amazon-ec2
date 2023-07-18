@@ -25,7 +25,7 @@ export class VpcResources extends Construct {
 	public readonly privateSubnet: ec2.SubnetSelection;
 	public readonly workstationSG: ec2.SecurityGroup;
 	public readonly reverseProxySG: ec2.SecurityGroup;
-	public readonly nucluesSG: ec2.SecurityGroup;
+	public readonly nucleusSG: ec2.SecurityGroup;
 	public readonly hostedZone: route53.IHostedZone;
 	public readonly certificate: acm.Certificate;
 
@@ -108,13 +108,13 @@ export class VpcResources extends Construct {
 			allowAllOutbound: true,
 			description: 'Reverse Proxy Security Group',
 		});
-		this.nucluesSG = new ec2.SecurityGroup(this, 'NucluesSG', {
+		this.nucleusSG = new ec2.SecurityGroup(this, 'NucluesSG', {
 			vpc: this.vpc,
 			allowAllOutbound: true,
 			description: 'Nuclues Server Security Group',
 		});
 
-		this.nucluesSG.addIngressRule(
+		this.nucleusSG.addIngressRule(
 			ec2.Peer.securityGroupId(this.reverseProxySG.securityGroupId),
 			ec2.Port.tcpRange(0, 65535),
 			'FIXME, update to required Nucleus ports'
@@ -197,6 +197,7 @@ export class VpcResources extends Construct {
 		this.hostedZone = route53.HostedZone.fromLookup(this, 'PublicHostedZone', {
 			domainName: env.ROOT_DOMAIN,
 		});
+
 		this.certificate = new acm.Certificate(this, 'PublicCertificate', {
 			domainName: env.ROOT_DOMAIN,
 			subjectAlternativeNames: [`*.${env.ROOT_DOMAIN}`],
@@ -218,6 +219,10 @@ export class VpcResources extends Construct {
 		// ------------------------------------------------------------------------
 		new CfnOutput(this, 'VpcID', {
 			value: this.vpc.vpcId,
+		});
+
+		new CfnOutput(this, 'HostedZoneID', {
+			value: this.hostedZone.hostedZoneId,
 		});
 	}
 }

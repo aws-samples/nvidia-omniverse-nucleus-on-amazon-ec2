@@ -1,7 +1,7 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { RevProxyResources } from './constructs/reverseProxy';
-import { NucluesServerResources } from './constructs/nucleusServer';
+import { NucluesServerResources as NucleusServerResources } from './constructs/nucleusServer';
 import { VpcResources } from './constructs/vpc';
 import { RemovalPolicy, CfnOutput } from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
@@ -45,10 +45,10 @@ export class AppStack extends Stack {
 
 		const vpcResources = new VpcResources(this, 'VpcResources', {});
 
-		const nucluesServerResources = new NucluesServerResources(this, 'NucluesServerResources', {
+		const nucleusServerResources = new NucleusServerResources(this, 'NucleusServerResources', {
 			vpc: vpcResources.vpc,
 			artifactsBucket: artifactsBucket,
-			nucleusServerSG: vpcResources.nucluesSG,
+			nucleusServerSG: vpcResources.nucleusSG,
 			commonUtilsLambdaLayer: commonUtilsLambdaLayer,
 		});
 
@@ -59,7 +59,7 @@ export class AppStack extends Stack {
 			hostedZone: vpcResources.hostedZone,
 			certificate: vpcResources.certificate,
 			commonUtilsLambdaLayer: commonUtilsLambdaLayer,
-			nucleusServerInstance: nucluesServerResources.nucleusServerInstance,
+			nucleusServerInstance: nucleusServerResources.nucleusServerInstance,
 		});
 
 		new CfnOutput(this, 'artifactsBucket', {

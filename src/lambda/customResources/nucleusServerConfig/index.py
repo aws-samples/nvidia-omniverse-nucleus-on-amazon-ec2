@@ -17,7 +17,8 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVEL)
 
-helper = CfnResource(json_logging=False, log_level="DEBUG", boto_level="CRITICAL")
+helper = CfnResource(json_logging=False, log_level="DEBUG",
+                     boto_level="CRITICAL")
 
 
 @helper.create
@@ -48,7 +49,7 @@ def create(event, context):
 def update(event, context):
     logger.info("Update Event: %s", json.dumps(event, indent=2))
 
-    nucluesServerAddress = event["ResourceProperties"]["nucluesServerAddress"]
+    nucleusServerAddress = event["ResourceProperties"]["nucleusServerAddress"]
     instanceId = event["ResourceProperties"]["instanceId"]
     reverseProxyDomain = event["ResourceProperties"]["reverseProxyDomain"]
     artifactsBucket = event["ResourceProperties"]["artifactsBucket"]
@@ -59,7 +60,7 @@ def update(event, context):
     response = update_nucleus_config(
         instanceId,
         artifactsBucket,
-        nucluesServerAddress,
+        nucleusServerAddress,
         reverseProxyDomain,
         nucleusBuild,
         ovMainLoginSecretArn,
@@ -71,7 +72,7 @@ def update(event, context):
 def update_nucleus_config(
     instanceId,
     artifactsBucket,
-    nucluesServerAddress,
+    nucleusServerAddress,
     reverseProxyDomain,
     nucleusBuild,
     ovMainLoginSecretArn,
@@ -94,11 +95,11 @@ def update_nucleus_config(
         "omniverse_root=opt/ove/",
         "sudo mkdir -p $omniverse_root",
         f"sudo tar xzvf stack/{nucleusBuild}.tar.gz -C $omniverse_root --strip-components=1",
-        "cd $omniverse_root/base_stack",
+        "cd opt/ove/base_stack",
         f"nst generate-nucleus-stack-env  \
-            --server-ip {nucluesServerAddress} \
+            --server-ip {nucleusServerAddress} \
             --reverse-proxy-domain {reverseProxyDomain} \
-            --instance-name nuclues_server \
+            --instance-name nucleus_server \
             --master-password {ovMainLoginPassword} \
             --service-password {ovServiceLoginPassword} \
             --data-root /var/lib/omni/nucleus-data",
@@ -114,7 +115,8 @@ def update_nucleus_config(
     for p in commands:
         print(p)
 
-    response = ssm.run_commands(instanceId, commands, document="AWS-RunShellScript")
+    response = ssm.run_commands(
+        instanceId, commands, document="AWS-RunShellScript")
     return response
 
 
