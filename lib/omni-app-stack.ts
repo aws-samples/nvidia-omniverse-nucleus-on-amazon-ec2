@@ -1,15 +1,17 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { RevProxyResources } from './constructs/reverseProxy';
-import { NucluesServerResources as NucleusServerResources } from './constructs/nucleusServer';
+import { NucleusServerResources } from './constructs/nucleusServer';
 import { VpcResources } from './constructs/vpc';
 import { RemovalPolicy, CfnOutput } from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
 import { cleanEnv, str, bool } from 'envalid';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as deployment from 'aws-cdk-lib/aws-s3-deployment';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as pyLambda from '@aws-cdk/aws-lambda-python-alpha';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
 dotenv.config();
 const env = cleanEnv(process.env, {
@@ -30,13 +32,21 @@ export class AppStack extends Stack {
 			autoDeleteObjects = true;
 		}
 
-		const artifactsBucket = s3.Bucket.fromBucketName(
-			this,
-			'artifacts-bucket',
-			env.OMNIVERSE_ARTIFACTS_BUCKETNAME
-		);
+		const artifactsBucket = new s3.Bucket(this, 'ArtifactsBucket', {
+			bucketName: env.OMNIVERSE_ARTIFACTS_BUCKETNAME ?? `${Stack.of(this).stackName}-omniverse-nucleus-artifacts-bucket`,
+			autoDeleteObjects: autoDeleteObjects,
+			removalPolicy: removalPolicy,
+		});
 
-		const commonUtilsLambdaLayer = new pyLambda.PythonLayerVersion(this, 'commonUtilsLayer', {
+		const artifactsDeployment = new deployment.BucketDeployment(this, "ArtifactsDeployment", {
+			sources: [deployment.Source.asset(path.join(__dirname, "..", "src", "tools"))],
+			destinationBucket: artifactsBucket,
+			destinationKeyPrefix: "tools",
+			extract: true,
+			exclude: ["*.DS_Store"]
+		});
+
+		const commonUtilsLambdaLayer = new pyLambda.PythonLayerVersion(this, 'CommonUtilsLayer', {
 			entry: 'src/lambda/common',
 			compatibleRuntimes: [lambda.Runtime.PYTHON_3_9],
 			description: 'Data Model Schema Layer',

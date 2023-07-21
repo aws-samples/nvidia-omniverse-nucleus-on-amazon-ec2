@@ -29,7 +29,7 @@ export type ConstructProps = {
 	commonUtilsLambdaLayer: pyLambda.PythonLayerVersion;
 };
 
-export class NucluesServerResources extends Construct {
+export class NucleusServerResources extends Construct {
 	public readonly nucleusServerInstance: ec2.Instance;
 
 	constructor(scope: Construct, id: string, props: ConstructProps) {
