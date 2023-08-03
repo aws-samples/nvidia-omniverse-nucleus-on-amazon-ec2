@@ -7,11 +7,11 @@ import logging
 import json
 
 
-import boto3
 from crhelper import CfnResource
 
 import aws_utils.ssm as ssm
 import aws_utils.sm as sm
+import config.nucleus as config
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 logger = logging.getLogger()
@@ -25,7 +25,6 @@ helper = CfnResource(json_logging=False, log_level="DEBUG",
 def create(event, context):
     logger.info("Create Event: %s", json.dumps(event, indent=2))
 
-    nucluesServerAddress = event["ResourceProperties"]["nucluesServerAddress"]
     instanceId = event["ResourceProperties"]["instanceId"]
     reverseProxyDomain = event["ResourceProperties"]["reverseProxyDomain"]
     artifactsBucket = event["ResourceProperties"]["artifactsBucket"]
@@ -36,7 +35,6 @@ def create(event, context):
     response = update_nucleus_config(
         instanceId,
         artifactsBucket,
-        nucluesServerAddress,
         reverseProxyDomain,
         nucleusBuild,
         ovMainLoginSecretArn,
@@ -49,7 +47,6 @@ def create(event, context):
 def update(event, context):
     logger.info("Update Event: %s", json.dumps(event, indent=2))
 
-    nucleusServerAddress = event["ResourceProperties"]["nucleusServerAddress"]
     instanceId = event["ResourceProperties"]["instanceId"]
     reverseProxyDomain = event["ResourceProperties"]["reverseProxyDomain"]
     artifactsBucket = event["ResourceProperties"]["artifactsBucket"]
@@ -60,7 +57,6 @@ def update(event, context):
     response = update_nucleus_config(
         instanceId,
         artifactsBucket,
-        nucleusServerAddress,
         reverseProxyDomain,
         nucleusBuild,
         ovMainLoginSecretArn,
@@ -72,7 +68,6 @@ def update(event, context):
 def update_nucleus_config(
     instanceId,
     artifactsBucket,
-    nucleusServerAddress,
     reverseProxyDomain,
     nucleusBuild,
     ovMainLoginSecretArn,
@@ -84,33 +79,14 @@ def update_nucleus_config(
     ovMainLoginPassword = ovMainLoginSecret["password"]
     ovServiceLoginPassword = ovServiceLoginSecret["password"]
 
-    commands = [
-        # install Nucleus Server Tools (nst) packaged from src/tools
-        "pwd",
-        f"aws s3 cp s3://{artifactsBucket}/tools/tools.zip ./tools.zip",
-        "unzip -o tools.zip",
-        "cd nucleusServer",
-        "pip3 install -r requirements.txt",
-        # unpackage nucleus stack
-        "omniverse_root=opt/ove/",
-        "sudo mkdir -p $omniverse_root",
-        f"sudo tar xzvf stack/{nucleusBuild}.tar.gz -C $omniverse_root --strip-components=1",
-        "cd opt/ove/base_stack",
-        f"nst generate-nucleus-stack-env  \
-            --server-ip {nucleusServerAddress} \
-            --reverse-proxy-domain {reverseProxyDomain} \
-            --instance-name nucleus_server \
-            --master-password {ovMainLoginPassword} \
-            --service-password {ovServiceLoginPassword} \
-            --data-root /var/lib/omni/nucleus-data",
-        "chmod +x ./generate-sample-insecure-secrets.sh",
-        "./generate-sample-insecure-secrets.sh",
-        # pull the images
-        "docker-compose --env-file nucleus-stack.env -f nucleus-stack-ssl.yml pull",
-        # start the nucleus stack
-        "docker-compose --env-file nucleus-stack.env -f nucleus-stack-ssl.yml up -d",
-        # review with sudo docker ps -a
-    ]
+    # generate config for reverse proxy servers
+    commands = []
+    try:
+        commands = config.get_config(
+            artifactsBucket, reverseProxyDomain, nucleusBuild, ovMainLoginPassword, ovServiceLoginPassword)
+        logger.debug(commands)
+    except Exception as e:
+        raise Exception("Failed to get Reverse Proxy config. {}".format(e))
 
     for p in commands:
         print(p)

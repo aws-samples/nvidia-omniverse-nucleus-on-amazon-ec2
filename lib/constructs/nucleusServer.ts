@@ -23,10 +23,12 @@ const env = cleanEnv(process.env, {
 });
 
 export type ConstructProps = {
+	removalPolicy: RemovalPolicy;
 	vpc: ec2.Vpc;
+	subnets: ec2.ISubnet[];
 	artifactsBucket: s3.IBucket;
 	nucleusServerSG: ec2.SecurityGroup;
-	commonUtilsLambdaLayer: pyLambda.PythonLayerVersion;
+	lambdaLayers: pyLambda.PythonLayerVersion[];
 };
 
 export class NucleusServerResources extends Construct {
@@ -38,10 +40,6 @@ export class NucleusServerResources extends Construct {
 		const region: string = Stack.of(this).region;
 		const account: string = Stack.of(this).account;
 		const stackName: string = Stack.of(this).stackName;
-
-		var removalPolicy = RemovalPolicy.DESTROY;
-
-		const root_domain = `${env.ROOT_DOMAIN}`;
 		const fullDomainName = `${env.NUCLEUS_SERVER_PREFIX}.${env.ROOT_DOMAIN}`;
 
 		// Templated secret
@@ -82,41 +80,6 @@ export class NucleusServerResources extends Construct {
 			}
 		);
 
-		// const user_data = `#!/bin/bash
-		// 	echo ------------------------ NUCLEUS SERVER CONFIG ------------------------
-		// 	echo UPDATING AND INSTALLING DEPS ----------------------------------
-		// 	sudo apt-get update -y -q && sudo apt-get upgrade -y
-		// 	sudo apt-get install dialog apt-utils -y
-
-		// 	echo INSTALLING AWS CLI ----------------------------------
-		// 	sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-		// 	sudo apt-get install unzip
-		// 	sudo unzip awscliv2.zip
-		// 	sudo ./aws/install
-		// 	sudo rm awscliv2.zip
-		// 	sudo rm -fr ./aws/install
-
-		// 	echo INSTALLING PYTHON ----------------------------------
-		// 	sudo apt-get -y install python3.9
-		// 	sudo curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-		// 	sudo python3.9 get-pip.py
-
-		// 	echo INSTALLING DOCKER ----------------------------------
-		// 	sudo apt-get remove docker docker-engine docker.io containerd runc
-		// 	sudo apt-get -y install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
-		// 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-		// 	sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-		// 	sudo apt-get -y update
-		// 	sudo apt-get -y install docker-ce docker-ce-cli containerd.io
-		// 	sudo systemctl enable --now docker
-
-		// 	echo INSTALLING DOCKER COMPOSE ----------------------------------
-		// 	sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-		// 	sudo chmod +x /usr/local/bin/docker-compose
-		// `;
-
-		const userData = ec2.UserData.custom(fs.readFileSync(path.join(__dirname, "..", "..", "src", "scripts", "nucleus-user-data.sh"), 'utf8'));
-
 		this.nucleusServerInstance = new ec2.Instance(this, 'NucleusServer', {
 			instanceType: new ec2.InstanceType('c5.4xlarge'),
 			machineImage: nucleusServerAMI,
@@ -124,12 +87,11 @@ export class NucleusServerResources extends Construct {
 			vpc: props.vpc,
 			role: instance_role,
 			securityGroup: props.nucleusServerSG,
-			userData: userData,
-			vpcSubnets: props.vpc.selectSubnets({ subnetGroupName: 'public-subnet-nat-gateway' }),
+			vpcSubnets: { subnets: props.subnets },
 			detailedMonitoring: true,
 		});
-		this.nucleusServerInstance.applyRemovalPolicy(removalPolicy);
-		Tags.of(this.nucleusServerInstance).add('Name', `${stackName}/Omniverse-NucleusServer`);
+		this.nucleusServerInstance.applyRemovalPolicy(props.removalPolicy);
+		Tags.of(this.nucleusServerInstance).add('Name', `${stackName}/NucleusServer`);
 
 		// artifacts bucket
 		instance_role.addToPolicy(
@@ -179,19 +141,20 @@ export class NucleusServerResources extends Construct {
 		});
 
 		const nucleusServerConfig = new CustomResource(this, 'NucleusServerConfig', {
+			lambdaName: 'NucleusServerConfig',
 			lambdaCodePath: './src/lambda/customResources/nucleusServerConfig',
 			lambdaPolicyDocument: nucleusConfigLambdaPolicy,
 			resourceProps: {
 				nounce: 2,
 				instanceId: this.nucleusServerInstance.instanceId,
 				reverseProxyDomain: fullDomainName,
-				nucleusServerAddress: this.nucleusServerInstance.instancePrivateDnsName,
 				nucleusBuild: env.NUCLEUS_BUILD,
 				artifactsBucket: props.artifactsBucket.bucketName,
 				ovMainLoginSecretArn: ovMainLogin.secretName,
 				ovServiceLoginSecretArn: ovServiceLogin.secretArn,
 			},
-			commonLambdaLayer: props.commonUtilsLambdaLayer,
+			lambdaLayers: props.lambdaLayers,
+			removalPolicy: props.removalPolicy
 		});
 		nucleusServerConfig.resource.node.addDependency(this.nucleusServerInstance);
 

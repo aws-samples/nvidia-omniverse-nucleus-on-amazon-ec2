@@ -16,6 +16,24 @@ logger.setLevel(LOG_LEVEL)
 client = boto3.client("ssm")
 
 
+def get_param_value(name) -> str:
+    response = client.get_parameter(Name=name)
+    logger.info(response)
+    return response['Parameter']['Value']
+
+
+def update_param_value(name, value) -> bool:
+    response = client.put_parameter(Name=name, Value=value, Overwrite=True)
+    logger.info(response)
+
+    try:
+        return (response['Version'] > 0)
+    except ClientError as e:
+        message = "Error calling SendCommand: {}".format(e)
+        logger.error(message)
+        return False
+
+
 def run_commands(
     instance_id, commands, document="AWS-RunPowerShellScript", comment="aws_utils.ssm.run_commands"
 ):
@@ -24,7 +42,8 @@ def run_commands(
     """
 
     # Run Commands
-    logger.info("Calling SendCommand: {} for instance: {}".format(commands, instance_id))
+    logger.info("Calling SendCommand: {} for instance: {}".format(
+        commands, instance_id))
     attempt = 0
     response = None
     while attempt < 20:
@@ -84,21 +103,25 @@ def run_commands(
                 continue
 
             elif result["Status"] == "Success":
-                logger.info("Command Output: {}".format(result["StandardOutputContent"]))
+                logger.info("Command Output: {}".format(
+                    result["StandardOutputContent"]))
 
                 if result["StandardErrorContent"]:
-                    message = "Command returned STDERR: {}".format(result["StandardErrorContent"])
+                    message = "Command returned STDERR: {}".format(
+                        result["StandardErrorContent"])
                     logger.warning(message)
 
                 break
 
             elif result["Status"] == "Failed":
-                message = "Error Running Command: {}".format(result["StandardErrorContent"])
+                message = "Error Running Command: {}".format(
+                    result["StandardErrorContent"])
                 logger.error(message)
                 raise Exception(message)
 
             else:
-                message = "Command has an unhandled status, will continue: {}".format(e)
+                message = "Command has an unhandled status, will continue: {}".format(
+                    e)
                 logger.warning(message)
                 continue
 
