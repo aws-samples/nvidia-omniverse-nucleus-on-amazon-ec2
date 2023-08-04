@@ -13,9 +13,9 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVEL)
 
-client = boto3.client("ec2")
+ec2_client = boto3.client("ec2")
 ec2_resource = boto3.resource("ec2")
-autoscaling = boto3.client("autoscaling")
+asg_client = boto3.client("autoscaling")
 
 
 def get_instance_public_dns_name(instanceId):
@@ -37,7 +37,7 @@ def get_instance_private_dns_name(instanceId):
 
 
 def get_instance_description(instanceId):
-    response = client.describe_instances(
+    response = ec2_client.describe_instances(
         InstanceIds=[instanceId],
     )
 
@@ -49,7 +49,7 @@ def get_instance_description(instanceId):
 
 
 def get_instance_status(instanceId):
-    response = client.describe_instance_status(
+    response = ec2_client.describe_instance_status(
         Filters=[
             {
                 "Name": "string",
@@ -79,8 +79,8 @@ def get_instance_status(instanceId):
     return status
 
 
-def get_autoscaling_instance(groupName):
-    response = autoscaling.describe_auto_scaling_groups(
+def get_autoscaling_instance(groupName: str):
+    response = asg_client.describe_auto_scaling_groups(
         AutoScalingGroupNames=[groupName]
     )
 
@@ -98,8 +98,22 @@ def get_autoscaling_instance(groupName):
     return instanceIds
 
 
+def detach_autoscaling_instances(groupName: str, instanceIds: list[str]):
+    return asg_client.detach_instances(
+        InstanceIds=instanceIds,
+        AutoScalingGroupName=groupName,
+        ShouldDecrementDesiredCapacity=True
+    )
+
+
+def delete_autoscaling_group(groupName: str):
+    return asg_client.delete_auto_scaling_group(
+        AutoScalingGroupName=groupName,
+    )
+
+
 def update_tag_value(resourceIds: list, tagKey: str, tagValue: str):
-    client.create_tags(
+    ec2_client.create_tags(
         Resources=resourceIds,
         Tags=[{
             'Key': tagKey,
@@ -109,7 +123,7 @@ def update_tag_value(resourceIds: list, tagKey: str, tagValue: str):
 
 
 def delete_tag(resourceIds: list, tagKey: str, tagValue: str):
-    response = client.delete_tags(
+    response = ec2_client.delete_tags(
         Resources=resourceIds,
         Tags=[{
             'Key': tagKey,
@@ -174,6 +188,6 @@ def get_volumes_by_instance_id(id):
 
 
 def terminate_instances(instance_ids):
-    response = client.terminate_instances(InstanceIds=instance_ids)
+    response = ec2_client.terminate_instances(InstanceIds=instance_ids)
     logger.info(response)
     return response

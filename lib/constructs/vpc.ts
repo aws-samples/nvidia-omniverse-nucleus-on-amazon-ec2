@@ -199,16 +199,17 @@ export class VpcResources extends Construct {
 
 		// nucleusSG rules
 		const nucleusRules = [
-			{ port: 80, desc: 'HTTP Access' },
-			{ port: 8080, desc: 'Nucleus Web2' },
-			{ port: 3019, desc: 'Nucleus API' },
+			{ port: 80, desc: 'Nucleus Web' },
+			{ port: 8080, desc: 'Nucleus Web3' },
+			{ port: 3009, desc: 'Nucleus API' },
+			{ port: 3010, desc: 'Nucleus Metrics' },
+			{ port: 3019, desc: 'Nucleus API 2' },
 			{ port: 3030, desc: 'Nucleus LFT' },
 			{ port: 3333, desc: 'Nucleus Discovery' },
 			{ port: 3100, desc: 'Nucleus Auth' },
 			{ port: 3180, desc: 'Nucleus Login' },
-			{ port: 3020, desc: 'Nucleus Tagging2' },
-			{ port: 3400, desc: 'Nucleus Search2' },
-			{ port: 34080, desc: 'Nucleus Navigator' },
+			{ port: 3020, desc: 'Nucleus Tagging3' },
+			{ port: 3400, desc: 'Nucleus Search3' },
 		];
 
 		nucleusRules.forEach((rule) => {
