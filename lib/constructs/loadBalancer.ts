@@ -50,14 +50,14 @@ export class LoadBalancerConstruct extends Construct {
         this.loadBalancer.logAccessLogs(
             new s3.Bucket(this, 'LoadBalancerAccessLogsBucket', {
                 encryption: s3.BucketEncryption.S3_MANAGED,
-                removalPolicy: props.removalPolicy,
-                autoDeleteObjects: props.autoDelete,
+                // removalPolicy: props.removalPolicy,
+                // autoDeleteObjects: props.autoDelete,
                 enforceSSL: true,
                 publicReadAccess: false,
                 blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-                serverAccessLogsPrefix: 'bucket-logs',
+                objectOwnership: s3.ObjectOwnership.BUCKET_OWNER_ENFORCED
             }),
-            'loadBalancer-logs'
+            'logs/lb'
         );
 
         // add ALB as target for Route 53 Hosted Zone

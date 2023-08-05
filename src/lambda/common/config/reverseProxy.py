@@ -21,16 +21,14 @@ def get_config(artifacts_bucket_name: str, nucleus_address: str, full_domain: st
         cd Python-3.9.9 || exit 1
         sudo ./configure --prefix=/usr --enable-optimizations
         sudo make install
+        pip3 --version
         
-        echo "------------------------ REVERSE PROXY CONFIG ------------------------"
         echo "INSTALLING REVERSE PROXY TOOLS ----------------------------------"
         cd /opt || exit 1
         sudo aws s3 cp --recursive s3://{artifacts_bucket_name}/tools/reverseProxy/ ./reverseProxy
         cd reverseProxy || exit 1
-        pip3 --version
         sudo pip3 install -r requirements.txt
         sudo rpt generate-nginx-config --domain {full_domain} --server-address {nucleus_address}
-        sudo mv -f nginx.conf /etc/nginx/nginx.conf
 
         echo "STARTING NGINX ----------------------------------"
         sudo service nginx restart
