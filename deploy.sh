@@ -6,7 +6,7 @@
 
 printf "BUILDING STACK...\n"
 
-ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
+ACCOUNT_ID=$(aws sts get-caller-identity | grep -Eo '"Account"[^,]*' | grep -Eo '[^:]*$')
 if [ -z "$ACCOUNT_ID" ]; then
     printf "\n[ERROR] Failed to get AWS Account ID. Verify your shell is configured with AWS and try again."
     exit 1
