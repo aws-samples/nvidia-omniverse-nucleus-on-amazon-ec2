@@ -64,22 +64,29 @@ def generate_acm_yaml(config, cert_arn):
 def generate_nginx_config(config, domain, server_address):
     logger.info(f'generate_nginx_config: {domain=}')
 
-    tools_path = '/'.join(list(Path(__file__).parts[:-1]))
-    cur_dir_path = '.'
+    nginx_template_path = os.path.join(
+        os.getcwd(), 'templates', 'nginx.conf')
+    if Path(nginx_template_path).is_file():
+        logger.info(f"NGINX template found at: {nginx_template_path}")
+    else:
+        raise Exception(
+            f"ERROR: No NGINX template found at: {nginx_template_path}")
 
-    template_path = f'{tools_path}/templates/nginx.conf'
-    output_path = f'{cur_dir_path}/nginx.conf'
-
-    logger.info(Path(template_path).is_file())
+    output_path = f'/etc/nginx/nginx.conf'
+    if Path(output_path).is_file():
+        logger.info(f"NGINX default configuration found at: {output_path}")
+    else:
+        raise Exception(
+            f"ERROR: No NGINX default configuration found at: {output_path}. Verify NGINX installation.")
 
     data = ''
-    with open(template_path, 'r') as file:
+    with open(nginx_template_path, 'r') as file:
         data = file.read()
 
     data = data.format(PUBLIC_DOMAIN=domain,
                        NUCLEUS_SERVER_DOMAIN=server_address)
 
-    with open(f'{output_path}', 'w') as file:
+    with open(output_path, 'w') as file:
         file.write(data)
 
     logger.info(output_path)
