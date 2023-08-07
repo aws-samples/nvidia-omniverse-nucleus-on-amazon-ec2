@@ -10,8 +10,6 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as pyLambda from '@aws-cdk/aws-lambda-python-alpha';
 import * as dotenv from 'dotenv';
 import * as asg from 'aws-cdk-lib/aws-autoscaling';
-import * as fs from 'fs';
-import * as path from 'path';
 
 dotenv.config();
 const env = cleanEnv(process.env, {

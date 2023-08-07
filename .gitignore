@@ -30,3 +30,4 @@ tools/config.ini
 .DS_STORE
 .vscode
 
+config.json
