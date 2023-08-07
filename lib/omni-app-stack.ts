@@ -1,20 +1,24 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { RevProxyResources } from './constructs/reverseProxy';
-import { NucluesServerResources } from './constructs/nucleusServer';
+import { NucleusServerResources } from './constructs/nucleusServer';
 import { VpcResources } from './constructs/vpc';
-import { RemovalPolicy, CfnOutput } from 'aws-cdk-lib';
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { NagSuppressions } from 'cdk-nag';
 import { cleanEnv, str, bool } from 'envalid';
-import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as pyLambda from '@aws-cdk/aws-lambda-python-alpha';
 import * as dotenv from 'dotenv';
+import { StorageResources } from './constructs/storageResources';
+import { LoadBalancerConstruct } from './constructs/loadBalancer';
+import { Route53Resources } from './constructs/route53';
 
 dotenv.config();
 const env = cleanEnv(process.env, {
 	DEV_MODE: bool({ default: false }),
 	OMNIVERSE_ARTIFACTS_BUCKETNAME: str({ default: '' }),
+	ROOT_DOMAIN: str({ default: '' }),
+	NUCLEUS_SERVER_PREFIX: str({ default: '' })
 });
 
 export class AppStack extends Stack {
@@ -22,49 +26,69 @@ export class AppStack extends Stack {
 		super(scope, id, props);
 
 		const stackName: string = Stack.of(this).stackName;
+		const region: string = Stack.of(this).region;
 
 		var removalPolicy = RemovalPolicy.RETAIN;
-		var autoDeleteObjects = false;
+		var autoDelete = false;
 		if (env.DEV_MODE == true) {
 			removalPolicy = RemovalPolicy.DESTROY;
-			autoDeleteObjects = true;
+			autoDelete = true;
 		}
 
-		const artifactsBucket = s3.Bucket.fromBucketName(
-			this,
-			'artifacts-bucket',
-			env.OMNIVERSE_ARTIFACTS_BUCKETNAME
-		);
+		const { artifactsBucket } = new StorageResources(this, "StorageResources", {
+			bucketName: env.OMNIVERSE_ARTIFACTS_BUCKETNAME,
+			autoDelete: autoDelete,
+			removalPolicy: removalPolicy
+		});
 
-		const commonUtilsLambdaLayer = new pyLambda.PythonLayerVersion(this, 'commonUtilsLayer', {
+		const { certificate, hostedZone } = new Route53Resources(this, 'Route53Resources', {
+			rootDomain: env.ROOT_DOMAIN,
+		});
+
+		const commonUtilsLambdaLayer = new pyLambda.PythonLayerVersion(this, 'CommonUtilsLayer', {
 			entry: 'src/lambda/common',
 			compatibleRuntimes: [lambda.Runtime.PYTHON_3_9],
 			description: 'Data Model Schema Layer',
 			layerVersionName: 'common_utils_layer',
 		});
 
-		const vpcResources = new VpcResources(this, 'VpcResources', {});
+		const vpcResources = new VpcResources(this, 'VpcResources', {
+			removalPolicy: removalPolicy,
+		});
 
-		const nucluesServerResources = new NucluesServerResources(this, 'NucluesServerResources', {
+		const nucleusServerResources = new NucleusServerResources(this, 'NucleusServerResources', {
+			removalPolicy: removalPolicy,
 			vpc: vpcResources.vpc,
+			subnets: vpcResources.subnets.nucleus,
 			artifactsBucket: artifactsBucket,
-			nucleusServerSG: vpcResources.nucluesSG,
-			commonUtilsLambdaLayer: commonUtilsLambdaLayer,
+			nucleusServerSG: vpcResources.securityGroups.nucleus,
+			lambdaLayers: [commonUtilsLambdaLayer],
 		});
 
 		const reverseProxyResources = new RevProxyResources(this, 'RevProxyResources', {
-			vpc: vpcResources.vpc,
+			removalPolicy: removalPolicy,
 			artifactsBucket: artifactsBucket,
-			reverseProxySG: vpcResources.reverseProxySG,
-			hostedZone: vpcResources.hostedZone,
-			certificate: vpcResources.certificate,
-			commonUtilsLambdaLayer: commonUtilsLambdaLayer,
-			nucleusServerInstance: nucluesServerResources.nucleusServerInstance,
+			vpc: vpcResources.vpc,
+			subnets: vpcResources.subnets.reverseProxy,
+			securityGroup: vpcResources.securityGroups.reverseProxy,
+			lambdaLayers: [commonUtilsLambdaLayer],
+			nucleusServerInstance: nucleusServerResources.nucleusServerInstance,
 		});
 
-		new CfnOutput(this, 'artifactsBucket', {
-			value: artifactsBucket.bucketName,
-		}).overrideLogicalId('artifactsBucket');
+		reverseProxyResources.node.addDependency(nucleusServerResources);
+
+		new LoadBalancerConstruct(this, 'LoadBalancerConstruct', {
+			removalPolicy: removalPolicy,
+			autoDelete: autoDelete,
+			vpc: vpcResources.vpc,
+			subnets: vpcResources.subnets.loadBalancer,
+			securityGroup: vpcResources.securityGroups.loadBalancer,
+			domainPrefix: env.NUCLEUS_SERVER_PREFIX,
+			rootDomain: env.ROOT_DOMAIN,
+			certificate: certificate,
+			hostedZone: hostedZone,
+			autoScalingGroup: reverseProxyResources.autoScalingGroup,
+		});
 
 		// -------------------------------
 		// NagSuppressions

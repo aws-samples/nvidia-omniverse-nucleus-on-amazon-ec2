@@ -43,7 +43,7 @@ const env = cleanEnv(process.env, {
 	AWS_DEFAULT_REGION: str({ choices: regions }),
 	OMNIVERSE_ARTIFACTS_BUCKETNAME: bucketname(),
 	ROOT_DOMAIN: host(),
-	NUCLUES_SERVER_PREFIX: domainprefix(),
+	NUCLEUS_SERVER_PREFIX: domainprefix(),
 	NUCLEUS_BUILD: str({ default: 'nucleus-stack-2022.1.0+tag-2022.1.0.gitlab.3983146.613004ac' }),
 	ALLOWED_CIDR_RANGE_01: cidrrange(),
 	ALLOWED_CIDR_RANGE_02: cidrrange({ default: '' }),

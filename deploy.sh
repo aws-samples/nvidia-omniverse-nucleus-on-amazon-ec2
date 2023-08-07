@@ -4,50 +4,35 @@
 # SPDX-License-Identifier: LicenseRef-.amazon.com.-AmznSL-1.0
 # Licensed under the Amazon Software License  http://aws.amazon.com/asl/
 
-echo '
-###############################
-# Installing Dependencies
-###############################
-'
-npm ci
+printf "BUILDING STACK...\n"
 
-
-echo '
-###############################
-# Building & Deploying Stack
-###############################
-'
-
-default_stack_name="omni-app"
-default_region="us-west-2"
-
-aws sts get-caller-identity
-if [[ $? -ne 0 ]]; then
+ACCOUNT_ID=$(aws sts get-caller-identity | jq -r .Account)
+if [ -z "$ACCOUNT_ID" ]; then
+    printf "\n[ERROR] Failed to get AWS Account ID. Verify your shell is configured with AWS and try again."
     exit 1
 fi
 
+printf "\nUsing AWS Account: %s\n" "$ACCOUNT_ID"
+
 if test -f ".env"; then
-    echo ".env found, sourcing environment"
-    source .env
+    printf "\nSourcing environment from '.env'.\n"
+    printf  "%s\n" "$(cat .env)"
 else
-    echo "Creating default .env file"
+    printf "\n[WARNING] No .env found. Creating default .env file.\n"
+    DEFAULT_STACK_NAME="omni-app"
+    DEFAULT_REGION="us-west-2"
     touch .env
-    echo "export APP_STACK_NAME=${default_stack_name}" >> .env
-    echo "export AWS_DEFAULT_REGION=${default_region}" >> .env
-
-    source .env
+    echo "export APP_STACK_NAME=${DEFAULT_STACK_NAME}" >> .env
+    echo "export AWS_DEFAULT_REGION=${DEFAULT_REGION}" >> .env
 fi
-
-missing_vars=0
+source .env
 
 if [[ -z "${APP_STACK_NAME}" ]]; then
-  echo "Missing Required ENV variable APP_STACK_NAME"
-  let missing_vars=1
+    printf "\n[ERROR] Missing Required ENV variable APP_STACK_NAME"
+    exit 1
 fi
 
-if [ $missing_vars -eq 1 ]; then
-	exit 1
-fi
+printf "\nDEPLOYING STACK...\n"
 
 cdk bootstrap && \
 cdk synth && \

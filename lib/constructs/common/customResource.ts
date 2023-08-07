@@ -4,7 +4,7 @@ import { NagSuppressions } from 'cdk-nag';
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import * as customResources from 'aws-cdk-lib/custom-resources';
+import * as cr from 'aws-cdk-lib/custom-resources';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as pyLambda from '@aws-cdk/aws-lambda-python-alpha';
 import fs = require('fs');
@@ -15,10 +15,12 @@ interface LooseTypeObject {
 }
 
 export type ConstructProps = {
+	lambdaName: string;
 	lambdaCodePath: string;
 	lambdaPolicyDocument: iam.PolicyDocument;
 	resourceProps: LooseTypeObject;
-	commonLambdaLayer?: pyLambda.PythonLayerVersion;
+	removalPolicy: RemovalPolicy;
+	lambdaLayers?: pyLambda.PythonLayerVersion[];
 };
 
 export class CustomResource extends Construct {
@@ -37,18 +39,13 @@ export class CustomResource extends Construct {
 			},
 		});
 
-		var layers = [];
-		if (props.commonLambdaLayer !== undefined) {
-			layers.push(props.commonLambdaLayer);
-		}
-
-		const lambdaName = this.node.path.split('/').join('-') + '-lambdaFn';
+		const lambdaName = `${Stack.of(this).stackName}-${props.lambdaName}-CustomResource`.slice(0, 64);
 		const lambdaLogGroup = `/aws/lambda/${lambdaName}`;
 
 		const logGroup = new logs.LogGroup(this, 'lambdaFnLogGroup', {
 			logGroupName: lambdaLogGroup,
 			retention: logs.RetentionDays.ONE_WEEK,
-			removalPolicy: RemovalPolicy.DESTROY,
+			removalPolicy: props.removalPolicy ?? RemovalPolicy.DESTROY,
 		});
 
 		const lambdaFn = new pyLambda.PythonFunction(this, 'lambdaFn', {
@@ -58,7 +55,7 @@ export class CustomResource extends Construct {
 			entry: props.lambdaCodePath,
 			role: lambdaRole,
 			timeout: Duration.minutes(5),
-			layers: layers,
+			layers: props.lambdaLayers || [],
 		});
 		lambdaFn.node.addDependency(logGroup);
 
@@ -69,7 +66,7 @@ export class CustomResource extends Construct {
 			})
 		);
 
-		const provider = new customResources.Provider(this, 'provider', {
+		const provider = new cr.Provider(this, 'provider', {
 			onEventHandler: lambdaFn,
 		});
 

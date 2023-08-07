@@ -1,31 +1,31 @@
 {
-  "name": "omni-app",
-  "version": "0.1.0",
-  "bin": {
-    "omni-app": "bin/omni-app.js"
-  },
-  "scripts": {
-    "build": "tsc",
-    "watch": "tsc -w",
-    "test": "jest",
-    "cdk": "cdk"
-  },
-  "devDependencies": {
-    "@types/jest": "^26.0.10",
-    "@types/node": "10.17.27",
-    "aws-cdk": "2.20.0",
-    "jest": "^26.4.2",
-    "ts-jest": "^26.2.0",
-    "ts-node": "^9.0.0",
-    "typescript": "~3.9.7"
-  },
-  "dependencies": {
-    "@aws-cdk/aws-lambda-python-alpha": "^2.70.0-alpha.0",
-    "aws-cdk-lib": "^2.70.0",
-    "cdk-nag": "^2.14.13",
-    "constructs": "^10.0.0",
-    "dotenv": "^16.0.3",
-    "envalid": "^7.2.1",
-    "source-map-support": "^0.5.16"
-  }
+	"name": "omni-app",
+	"version": "0.1.0",
+	"bin": {
+		"omni-app": "bin/omni-app.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"watch": "tsc -w",
+		"test": "jest",
+		"cdk": "cdk"
+	},
+	"devDependencies": {
+		"@types/jest": "^26.0.10",
+		"@types/node": "10.17.27",
+		"aws-cdk": "2.20.0",
+		"jest": "^26.4.2",
+		"ts-jest": "^26.2.0",
+		"ts-node": "^9.0.0",
+		"typescript": "~3.9.7"
+	},
+	"dependencies": {
+		"@aws-cdk/aws-lambda-python-alpha": "2.88.0-alpha.0",
+		"aws-cdk-lib": "2.88.0",
+		"cdk-nag": "^2.14.13",
+		"constructs": "^10.0.0",
+		"dotenv": "^16.0.3",
+		"envalid": "^7.2.1",
+		"source-map-support": "^0.5.16"
+	}
 }

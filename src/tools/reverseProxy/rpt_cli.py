@@ -18,16 +18,18 @@ import rpt.logger as logger
 
 pass_config = click.make_pass_decorator(object, ensure=True)
 
+
 @click.group()
 @pass_config
 def main(config):
     pass
 
+
 @main.command()
 @pass_config
-@click.option("--my_opt_arg")
-def hello_world(config, my_opt_arg):
-    logger.info(f'Hello World: {my_opt_arg=}')
+def hello_world(config):
+    logger.info(f'Hello World')
+
 
 @main.command()
 @pass_config
@@ -54,12 +56,13 @@ def generate_acm_yaml(config, cert_arn):
 
     logger.info(output_path)
 
+
 @main.command()
 @pass_config
 @click.option("--domain", required=True)
 @click.option("--server-address", required=True)
 def generate_nginx_config(config, domain, server_address):
-    logger.info(f'generate_acm_yaml: {domain=}')
+    logger.info(f'generate_nginx_config: {domain=}')
 
     tools_path = '/'.join(list(Path(__file__).parts[:-1]))
     cur_dir_path = '.'
@@ -73,7 +76,8 @@ def generate_nginx_config(config, domain, server_address):
     with open(template_path, 'r') as file:
         data = file.read()
 
-    data = data.format(PUBLIC_DOMAIN=domain, NUCLEUS_SERVER_DOMAIN=server_address)
+    data = data.format(PUBLIC_DOMAIN=domain,
+                       NUCLEUS_SERVER_DOMAIN=server_address)
 
     with open(f'{output_path}', 'w') as file:
         file.write(data)
