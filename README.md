@@ -35,7 +35,7 @@ To support distributed Omniverse users, Nucleus should be deployed in a secure e
 ### 1. Download Nucleus Deployment Artifacts from NVIDIA
 Place them in `./src/tools/nucleusServer/stack`
 
-For example: `./src/tools/nucleusServer/stack/nucleus-stack-2022.1.0+tag-2022.1.0.gitlab.3983146.613004ac.tar.gz`
+For example: `./src/tools/nucleusServer/stack/nucleus-stack-2023.1.0+tag-2023.1.0.gitlab.8633670.7f07353a.tar.gz`
 
 Consult NVIDIA documentation to find the appropriate packages.
 
@@ -55,7 +55,7 @@ Set the following variables
   export OMNIVERSE_ARTIFACTS_BUCKETNAME=example-bucket-name
   export ROOT_DOMAIN=example-domain.com
   export NUCLEUS_SERVER_PREFIX=nucleus
-  export NUCLEUS_BUILD=nucleus-stack-2022.1.0+tag-2022.1.0.gitlab.3983146.613004ac # from Step 1
+  export NUCLEUS_BUILD=nucleus-stack-2023.1.0+tag-2023.1.0.gitlab.8633670.7f07353a # from Step 1
   export ALLOWED_CIDR_RANGE_01=cidr-range-with-public-access
   export DEV_MODE=true
 ```
